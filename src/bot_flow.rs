@@ -4,9 +4,7 @@ use fantoccini::ClientBuilder;
 use teloxide::dispatching::UpdateHandler;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
-use teloxide::types::{
-    ButtonRequest, ChatMember, ChatMemberKind, InputFile, KeyboardButton, KeyboardMarkup,
-};
+use teloxide::types::{ButtonRequest, ChatMemberKind, InputFile, KeyboardButton, KeyboardMarkup};
 use teloxide::Bot;
 
 use crate::domain::{Async, CheckError, Location, WeatherResponse};
@@ -24,7 +22,7 @@ pub fn schema() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'stat
     use dptree::case;
 
     dptree::entry()
-        .branch(Update::filter_chat_member().endpoint(chat_member))
+        .branch(Update::filter_my_chat_member().endpoint(chat_member))
         .branch(
             Update::filter_message()
                 .filter_command::<Command>()
@@ -33,17 +31,16 @@ pub fn schema() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'stat
         .branch(Update::filter_message().endpoint(update_location))
 }
 
-pub async fn chat_member(mmbr: ChatMember, state: StateManager) -> HandlerResult {
-    log::info!(
-        "chat member msg from user {} {} {:?}",
-        mmbr.user.full_name(),
-        mmbr.user.id,
-        mmbr
-    );
+pub async fn chat_member(mmbr: ChatMemberUpdated, state: StateManager) -> HandlerResult {
+    let new_member = mmbr.new_chat_member.clone();
 
-    if mmbr.kind == ChatMemberKind::Left {
-        log::info!("user {} {} left", mmbr.user.full_name(), mmbr.user.id);
-        state.remove(mmbr.user.id.into()).await;
+    if new_member.kind != ChatMemberKind::Member {
+        log::info!(
+            "user {} {} left",
+            new_member.user.full_name(),
+            new_member.user.id
+        );
+        state.remove(new_member.user.id.into()).await;
     }
 
     Ok(())
