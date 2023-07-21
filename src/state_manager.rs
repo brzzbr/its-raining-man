@@ -90,7 +90,7 @@ async fn check_and_alert(
 
     let should_check = maybe_last_alerted_sec
         .map(|last_alerted_sec| now_sec - last_alerted_sec > 14400)
-        .unwrap_or(false);
+        .unwrap_or(true);
 
     if should_check {
         let alerted = check_forecast(chat_id, location, now_sec).await;
