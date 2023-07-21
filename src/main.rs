@@ -54,7 +54,7 @@ async fn main() {
     };
 
     for (chat_id, (location, last_alert)) in db.all().await {
-        state_manager.add(chat_id, location, last_alert).await;
+        state_manager.register(chat_id, location, last_alert).await;
     }
 
     log::info!("its-raining-man bot started...");

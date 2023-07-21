@@ -57,7 +57,7 @@ pub async fn update_location(bot: Bot, msg: Message, state: StateManager) -> Han
             msg.chat.id,
             location
         );
-        state.add(msg.chat.id, location, None).await;
+        state.add_new(msg.chat.id, location).await;
         bot.send_message(msg.chat.id, "Awesome! Location updated")
             .await
             .unwrap();

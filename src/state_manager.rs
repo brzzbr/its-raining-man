@@ -24,7 +24,12 @@ pub struct StateManager {
 }
 
 impl StateManager {
-    pub async fn add(
+    pub async fn add_new(&self, chat_id: ChatId, location: Location) {
+        (self.create_record)(chat_id, location).await;
+        self.register(chat_id, location, None).await
+    }
+
+    pub async fn register(
         &self,
         chat_id: ChatId,
         location: Location,
@@ -34,8 +39,6 @@ impl StateManager {
         if let Some(join) = checkers.remove(&chat_id) {
             join.abort();
         }
-
-        (self.create_record)(chat_id, location).await;
 
         let check_task = tokio::spawn({
             let check_every_seconds = self.check_every_seconds;
