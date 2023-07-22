@@ -92,7 +92,7 @@ async fn check_and_alert(
         .as_secs();
 
     let should_check = maybe_last_alerted_sec
-        .map(|last_alerted_sec| now_sec - last_alerted_sec > 14400)
+        .map(|last_alerted_sec| now_sec - last_alerted_sec > 7200)
         .unwrap_or(true);
 
     if should_check {
@@ -109,5 +109,5 @@ async fn check_and_alert(
         }
     }
 
-    None
+    maybe_last_alerted_sec
 }
