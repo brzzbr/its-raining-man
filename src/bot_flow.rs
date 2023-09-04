@@ -35,11 +35,7 @@ pub async fn chat_member(mmbr: ChatMemberUpdated, state: StateManager) -> Handle
     let new_member = mmbr.new_chat_member.clone();
 
     if new_member.kind != ChatMemberKind::Member {
-        log::info!(
-            "user {} {} left",
-            new_member.user.full_name(),
-            new_member.user.id
-        );
+        log::info!("user {} {} left", mmbr.from.full_name(), mmbr.chat.id);
         state.remove(new_member.user.id.into()).await;
     }
 
