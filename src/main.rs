@@ -19,6 +19,7 @@ mod state_manager;
 #[derive(Deserialize)]
 struct AppConfig {
     db_path: String,
+    url_to_pic: String,
 }
 
 #[tokio::main]
@@ -46,7 +47,10 @@ async fn main() {
     let state_manager = StateManager {
         check_every_seconds: 300,
         checkers: Arc::new(RwLock::new(HashMap::default())),
-        check_forecast: Arc::new(bot_flow::check_forecast_and_notify_if_rain(bot.clone())),
+        check_forecast: Arc::new(bot_flow::check_forecast_and_notify_if_rain(
+            bot.clone(),
+            config.url_to_pic,
+        )),
 
         create_record: Arc::new(kinda_db::kinda_create(db.clone())),
         update_record: Arc::new(kinda_db::kinda_update(db.clone())),

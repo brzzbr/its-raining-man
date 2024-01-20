@@ -26,7 +26,7 @@ impl Location {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct AlertResponse {
     #[serde(rename = "type")]
     pub typ: String,

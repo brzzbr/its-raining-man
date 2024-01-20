@@ -1,6 +1,3 @@
-use std::time::Duration;
-
-use fantoccini::ClientBuilder;
 use teloxide::dispatching::UpdateHandler;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
@@ -95,9 +92,11 @@ pub async fn start(bot: Bot, msg: Message) -> HandlerResult {
 
 pub fn check_forecast_and_notify_if_rain(
     bot: Bot,
+    url_to_pic: String,
 ) -> impl Fn(ChatId, Location, u64) -> Async<Result<bool, CheckError>> {
     move |chat_id: ChatId, loc: Location, time: u64| {
         let bot = bot.clone();
+        let url_to_pic = url_to_pic.clone();
 
         let result = async move {
             let params = [
@@ -113,30 +112,71 @@ pub fn check_forecast_and_notify_if_rain(
             log::info!("{} request {}", chat_id, url);
 
             let response = reqwest::get(url).await?.json::<WeatherResponse>().await?;
+            let alert = response.alert.clone();
 
             log::info!("{} response {:?}", chat_id, response);
 
-            if response.alert.typ != "noprec" {
-                let url = format!(
+            if alert.typ != "noprec" {
+                let screenshot_url = format!(
                     "https://yandex.ee/weather/maps/nowcast?lat={lat}&lon={lon}&z=9&le_Lightning=1",
                     lat = loc.lat(),
                     lon = loc.lon(),
                 );
 
-                let client = ClientBuilder::native()
-                    .connect("http://127.0.0.1:4444")
-                    .await?;
+                let params = [
+                    ("url", screenshot_url.clone()),
+                    ("height", "1080".to_string()),
+                    ("mobile", "0".to_string()),
+                    ("allocated_time", "5".to_string()),
+                    ("width", "1920".to_string()),
+                    ("base64", "0".to_string()),
+                ];
 
-                client.goto(url.as_str()).await?;
-                client.set_window_size(1920, 1080).await?;
-                tokio::time::sleep(Duration::from_secs(30)).await;
-                let png_data = client.screenshot().await?;
+                let url = "https://url-to-screenshot.p.rapidapi.com/get";
+                let url = reqwest::Url::parse_with_params(url, &params)?;
 
-                bot.send_photo(chat_id, InputFile::memory(png_data))
-                    .caption(format!("Oops! {}\n{}", response.alert.title, url))
-                    .await?;
+                let client = reqwest::Client::new();
 
-                client.close().await?;
+                let maybe_response = client
+                    .get(url)
+                    .header("Accept", "image/png")
+                    .header("X-RapidAPI-Key", url_to_pic.as_str())
+                    .header("X-RapidAPI-Host", "url-to-screenshot.p.rapidapi.com")
+                    .send()
+                    .await;
+
+                match maybe_response {
+                    Ok(response) => {
+                        let maybe_img_bytes = response.bytes().await;
+
+                        match maybe_img_bytes {
+                            Ok(bytes) => {
+                                let _ = bot
+                                    .send_photo(chat_id, InputFile::memory(bytes))
+                                    .caption(format!("Oops! {}\n{}", alert.title, screenshot_url))
+                                    .await;
+                            }
+
+                            Err(_) => {
+                                let _ = bot
+                                    .send_message(
+                                        chat_id,
+                                        format!("Oops! {}\n{}", alert.title, screenshot_url),
+                                    )
+                                    .await;
+                            }
+                        }
+                    }
+
+                    Err(_) => {
+                        let _ = bot
+                            .send_message(
+                                chat_id,
+                                format!("Oops! {}\n{}", alert.title, screenshot_url),
+                            )
+                            .await;
+                    }
+                }
 
                 Ok(true)
             } else {
